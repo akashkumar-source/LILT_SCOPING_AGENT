@@ -1,0 +1,14 @@
+# Secrets
+.env
+*.json
+!resources/*.json
+
+# Data/Logs
+logs/
+outputs/
+*.parquet
+__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db

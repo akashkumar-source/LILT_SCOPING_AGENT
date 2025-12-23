@@ -1,0 +1,40 @@
+Lilt Scoping Agent - Production Deployment
+
+This service runs the scoping analysis engine on Google Cloud Run. it processes documents, queries BigQuery, and uses GPT-4o to estimate project complexity and requirements.
+
+Deployment Process
+
+The repository is configured to deploy automatically via GitHub Actions whenever code is pushed to the main branch.
+
+GitHub Secrets Setup
+For the deployment to work, you must add the following secrets in the repository settings (Settings > Secrets and variables > Actions):
+
+1. GCP_PROJECT_ID: The ID of your Google Cloud project.
+2. GCP_SA_KEY: The JSON key file content for your service account.
+3. OPENAI_API_KEY: Your OpenAI API key for processing.
+4. INPUT_BUCKET: The name of the GCS bucket where input files are stored.
+5. OUTPUT_BUCKET: The name of the GCS bucket where reports will be saved.
+
+API Integration
+
+The service provides a POST endpoint at /scoping/run for the Apps Script UI to call.
+
+Input Payload Format:
+{
+  "job_ids": "1446777",
+  "gcs_input_path": "gs://your-input-bucket/pm-uploads/job_abc/",
+  "instructions": "Any specific project notes",
+  "translator_pct": 0.6,
+  "reviewer_pct": 0.3,
+  "pm_pct": 0.1
+}
+
+The service will process the files and return signed URLs for the generated JSON and CSV reports.
+
+Local Development
+
+To run the app locally for testing, make sure you have the required packages installed and your environment variables set in a .env file.
+
+Commands:
+pip install -r requirements.txt
+python app.py
