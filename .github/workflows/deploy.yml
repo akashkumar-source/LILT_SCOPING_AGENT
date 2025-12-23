@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  PROJECT_ID: arched-champion-847
   REGION: us-central1
   SERVICE_NAME: scoping-agent
-  IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/scoping-agent
+  IMAGE_NAME: gcr.io/arched-champion-847/scoping-agent
 
 jobs:
   deploy:
@@ -44,7 +44,7 @@ jobs:
         flags: '--allow-unauthenticated --memory=2Gi --cpu=1 --timeout=3600 --add-cloudrun-proxied-type=google-apps-script'
         env_vars: |-
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+          PROJECT_ID=arched-champion-847
           INPUT_BUCKET=${{ secrets.INPUT_BUCKET }}
           OUTPUT_BUCKET=${{ secrets.OUTPUT_BUCKET }}
           LOG_SHEET_ID=${{ secrets.LOG_SHEET_ID }}
