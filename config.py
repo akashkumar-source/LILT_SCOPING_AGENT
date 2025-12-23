@@ -18,11 +18,6 @@ INPUT_BUCKET = os.getenv("INPUT_BUCKET", "scoping-agent-input")
 OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "scoping-agent-output")
 GCP_SERVICE_ACCOUNT_EMAIL = os.getenv("GCP_SERVICE_ACCOUNT_EMAIL", "")
 
-# Production Logging & Integration
-LOG_SHEET_ID = os.getenv("LOG_SHEET_ID", "") # Replace with your Log Sheet ID
-APPS_SCRIPT_ID = os.getenv("APPS_SCRIPT_ID", "") # Needed for Audience flag
-NOTIFICATION_EMAIL = os.getenv("NOTIFICATION_EMAIL", "")
-
 # ==================== APPLICATION CONSTANTS ====================
 NON_TRANSLATABLE_PATTERNS = [
     r"do not translate",
