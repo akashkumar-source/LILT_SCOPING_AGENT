@@ -20,6 +20,7 @@ jobs:
     - name: Google Auth
       uses: google-github-actions/auth@v2
       with:
+        # If no SA key is provided, this step will attempt OIDC/Workload Identity
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
     - name: Set up Cloud SDK
@@ -39,9 +40,10 @@ jobs:
         service: ${{ env.SERVICE_NAME }}
         image: ${{ env.IMAGE_NAME }}
         region: ${{ env.REGION }}
-        flags: '--allow-unauthenticated --memory=2Gi --cpu=1 --timeout=3600'
+        flags: '--allow-unauthenticated --memory=2Gi --cpu=1 --timeout=3600 --add-cloudrun-proxied-type=google-apps-script'
         env_vars: |-
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
           INPUT_BUCKET=${{ secrets.INPUT_BUCKET }}
           OUTPUT_BUCKET=${{ secrets.OUTPUT_BUCKET }}
+          LOG_SHEET_ID=${{ secrets.LOG_SHEET_ID }}
