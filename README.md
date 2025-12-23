@@ -9,11 +9,10 @@ The repository is configured to deploy automatically via GitHub Actions whenever
 GitHub Secrets Setup
 For the deployment to work, you must add the following secrets in the repository settings (Settings > Secrets and variables > Actions):
 
-1. GCP_PROJECT_ID: The ID of your Google Cloud project.
-2. GCP_SA_KEY: The JSON key file content for your service account.
-3. OPENAI_API_KEY: Your OpenAI API key for processing.
-4. INPUT_BUCKET: The name of the GCS bucket where input files are stored.
-5. OUTPUT_BUCKET: The name of the GCS bucket where reports will be saved.
+1. OPENAI_API_KEY: Your OpenAI API key for processing.
+2. INPUT_BUCKET: The name of the GCS bucket where input files are stored (e.g., scoping-input-dev).
+3. OUTPUT_BUCKET: The name of the GCS bucket where reports will be saved (e.g., scoping-output-dev).
+4. LOG_SHEET_ID: (Optional) The ID of the Google Sheet for logging.
 
 API Integration
 
