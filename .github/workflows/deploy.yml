@@ -39,7 +39,7 @@ jobs:
         service: ${{ env.SERVICE_NAME }}
         image: ${{ env.IMAGE_NAME }}
         region: ${{ env.REGION }}
-        flags: '--allow-unauthenticated --memory=2Gi --cpu=1 --timeout=3600'
+        flags: '--allow-unauthenticated --memory=2Gi --cpu=1 --timeout=3600 --add-cloudrun-proxied-type=google-apps-script'
         env_vars: |-
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}

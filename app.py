@@ -163,6 +163,46 @@ def generate_signed_url(bucket_name: str, blob_name: str, expiration_hours: int 
     )
     return url
 
+# ==================== PRODUCTION LOGGING (GSheet & Email) ====================
+
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
+
+def log_to_google_sheet(job_id, status, details, result_url=""):
+    """Logs job status to a central Google Sheet."""
+    if not config.LOG_SHEET_ID:
+        print("⚠️ No LOG_SHEET_ID configured - skipping spreadsheet log")
+        return
+    
+    try:
+        service = build('sheets', 'v4')
+        range_name = 'Sheet1!A:E'
+        values = [[
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            job_id,
+            status,
+            details,
+            result_url
+        ]]
+        body = {'values': values}
+        service.spreadsheets().values().append(
+            spreadsheetId=config.LOG_SHEET_ID,
+            range=range_name,
+            valueInputOption='USER_ENTERED',
+            body=body
+        ).execute()
+        print(f"✅ Logged to Google Sheet: {config.LOG_SHEET_ID}")
+    except Exception as e:
+        print(f"❌ Failed to log to Google Sheet: {str(e)}")
+
+def send_email_notification(job_id, status, subject_text, body_text):
+    """Placeholder for email notification logic. Integration depends on org preference (SendGrid, Mailgun, or Gmail API)."""
+    if not config.NOTIFICATION_EMAIL:
+        return
+    print(f"📧 Sending notification for Job {job_id}: {subject_text}")
+    # Implementation detail: Usually using the Gmail API or equivalent
+    # for now we'll log the intention.
+
 # Note: Benchmark data is automatically checked and downloaded inside the processing function for better performance.
 
 DEFAULT_FALLBACK_TAT_RULES = config.DEFAULT_FALLBACK_TAT_RULES
@@ -864,6 +904,9 @@ def process_translation_project(request: ScopingRequest):
 
         status += f"✅ Downloaded {len(document_files)} documents\n"
 
+        # Log start to Google Sheet
+        log_to_google_sheet(timestamp_str, "IN_PROGRESS", f"Processing {len(document_files)} documents for Job IDs: {job_ids_input}")
+
         user_ramp_config = None
         if ramped_daily_throughput and ramp_up_days:
             try:
@@ -1438,6 +1481,18 @@ def process_translation_project(request: ScopingRequest):
             preprocessing_flags=preprocessing_flags_found,
             ramped_throughput=ramped_daily_throughput,
             ramp_days=ramp_up_days
+        # Log success to Google Sheet & Notify
+        log_to_google_sheet(
+            timestamp_str, 
+            "SUCCESS", 
+            f"Processed {len(summary_rows)} workflows, {total_word_count} words",
+            pm_csv_url
+        )
+        send_email_notification(
+            timestamp_str,
+            "SUCCESS",
+            f"Scoping Complete: Job {timestamp_str}",
+            f"Analysis finished successfully.\nResults: {pm_csv_url}"
         )
 
         return {
@@ -1463,6 +1518,13 @@ def process_translation_project(request: ScopingRequest):
             execution_time=execution_time,
             user_instructions=user_instructions,
             traceback=traceback.format_exc()
+        # Log failure to Google Sheet & Notify
+        log_to_google_sheet(timestamp_str if 'timestamp_str' in locals() else "UNKNOWN", "ERROR", str(e))
+        send_email_notification(
+            timestamp_str if 'timestamp_str' in locals() else "UNKNOWN",
+            "ERROR",
+            f"Scoping Failed: Job {timestamp_str if 'timestamp_str' in locals() else 'UNKNOWN'}",
+            f"Error details: {str(e)}"
         )
         return error_msg, None, None, None
 
