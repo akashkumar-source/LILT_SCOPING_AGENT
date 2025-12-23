@@ -12,3 +12,6 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Temp job folders
+job_*/
