@@ -19,7 +19,7 @@ OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "scoping-agent-output")
 GCP_SERVICE_ACCOUNT_EMAIL = os.getenv("GCP_SERVICE_ACCOUNT_EMAIL", "")
 
 # Production Logging (Aditya's requirement)
-LOG_SHEET_ID = os.getenv("LOG_SHEET_ID", "") 
+LOG_SHEET_ID = os.getenv("LOG_SHEET_ID", "1_Fm0-jS8i9bK-unrTsIvXVEagMvn6K8EnAqo9AoFtbY") 
 NOTIFICATION_EMAIL = os.getenv("NOTIFICATION_EMAIL", "")
 
 # ==================== APPLICATION CONSTANTS ====================
