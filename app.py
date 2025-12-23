@@ -56,7 +56,7 @@ else:
 # NON-TRANSLATABLE PHRASES
 NON_TRANSLATABLE_PATTERNS = config.NON_TRANSLATABLE_PATTERNS
 
-# Path Configuration Aliases (Aditya's requirement)
+# Path Configuration Aliases 
 DATA_BASE_DIR = config.DATA_BASE_DIR
 LOG_DIR = config.LOG_DIR
 OUTPUT_DIR = config.OUTPUT_DIR
@@ -199,7 +199,8 @@ def generate_signed_url(bucket_name: str, blob_name: str, expiration_hours: int 
     except Exception as e:
         # If it's a local path from upload_to_gcs, return it as a file URL
         if os.path.exists(blob_name):
-            return f"file:///{os.path.abspath(blob_name).replace('\\', '/')}"
+            abs_path = os.path.abspath(blob_name).replace('\\', '/')
+            return f"file:///{abs_path}"
         return blob_name
 
 # ==================== PRODUCTION LOGGING (GSheet & Email) ====================
@@ -1007,8 +1008,7 @@ def process_translation_project(request: ScopingRequest):
 
             # Use local path unless an override is provided via UI
             effective_benchmark_path = BENCHMARK_LOCAL_PATH
-            if benchmark_file is not None:
-                effective_benchmark_path = getattr(benchmark_file, 'name', benchmark_file)
+            # Legacy override removed
 
             df = pd.read_parquet(effective_benchmark_path)
             status += f"✅ Loaded {len(df)} benchmark records\n"
@@ -1298,27 +1298,28 @@ def process_translation_project(request: ScopingRequest):
             # ==================== SLA SPLIT LOGIC ====================
 
             # Helper: Validates user input. Returns 0.0 if None/Invalid, unless ALL are None.
-            def _safe_float(val):
-                try:
-                    return float(val) if val is not None and str(val).strip() != "" else None
-                except:
-                    return None
-
-            t_val = _safe_float(translation_pct_gradio)
-            r_val = _safe_float(review_pct_gradio)
-            p_val = _safe_float(pm_pct_gradio)
-
-            # If ALL are None/Empty, then we use auto-logic.
-            # If AT LEAST ONE is provided, we treat missing ones as 0.0 and attempt to use manual override.
-            if t_val is None and r_val is None and p_val is None:
-                use_defaults = True
-                status += "ℹ️ No manual time splits provided. Using auto-logic.\n"
-            else:
-                use_defaults = False
-                translation_pct = t_val if t_val is not None else 0.0
-                review_pct = r_val if r_val is not None else 0.0
-                pm_pct = p_val if p_val is not None else 0.0
-                status += f"ℹ️ Using manual time split: T:{translation_pct:.0%}, R:{review_pct:.0%}, PM:{pm_pct:.0%}\n"
+            # ==================== SLA SPLIT LOGIC ====================
+            
+            # Use values from request (or defaults if missing)
+            # Logic: If user provided specific splits in the API, they are already in translation_pct, review_pct, pm_pct
+            # If they are None (from Pydantic model), we fall back to defaults later.
+            
+            # Since Pydantic model sets defaults (0.6, 0.3, 0.1), these will rarely be None unless explicitly passed as null.
+            # But let's check if they sum to roughly 1.0 or if we need auto-logic.
+            
+            # Actually, the logic below expects to know if "use_defaults" is needed. 
+            # In API mode, we assume the inputs in `request` are what we want. 
+            # If the user explicitly passed 0 or None, we handle it.
+            
+            # For simplicity in this API port: 
+            # We trust the values unpacked at the start of the function.
+            use_defaults = False 
+            
+            # Ensure they are floats
+            translation_pct = float(translation_pct) if translation_pct is not None else 0.0
+            review_pct = float(review_pct) if review_pct is not None else 0.0
+            pm_pct = float(pm_pct) if pm_pct is not None else 0.0
+            status += f"ℹ️ Using manual time split: T:{translation_pct:.0%}, R:{review_pct:.0%}, PM:{pm_pct:.0%}\n"
 
             if use_defaults:
                 workflow_lower = workflow.lower()
@@ -1483,6 +1484,10 @@ def process_translation_project(request: ScopingRequest):
             "analysis": analysis_json,
             "productivity_estimate": productivity_json
         }
+
+        json_output_path = os.path.join(OUTPUT_DIR, "document_analysis_output.json")
+        with open(json_output_path, 'w') as f:
+            json.dump(final_output, f, indent=4)
 
         # ==================== UPLOAD RESULTS TO GCS ====================
         status += "📤 Uploading results to GCS...\n"
