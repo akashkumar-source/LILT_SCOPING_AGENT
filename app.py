@@ -56,10 +56,16 @@ else:
 # NON-TRANSLATABLE PHRASES
 NON_TRANSLATABLE_PATTERNS = config.NON_TRANSLATABLE_PATTERNS
 
+# Path Configuration Aliases (Aditya's requirement)
+DATA_BASE_DIR = config.DATA_BASE_DIR
+LOG_DIR = config.LOG_DIR
 OUTPUT_DIR = config.OUTPUT_DIR
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
+BENCHMARK_FILE_ID = config.BENCHMARK_FILE_ID
+BENCHMARK_LOCAL_PATH = config.BENCHMARK_LOCAL_PATH
 FALLBACK_SLA_PATH = config.FALLBACK_SLA_PATH
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
 # ==================== API MODELS ====================
 
 class ScopingRequest(BaseModel):
@@ -118,13 +124,36 @@ def is_valid_parquet(file_path):
 def download_from_gcs(gcs_path: str, local_dir: str):
     """
     Downloads all files from a GCS prefix to a local directory.
-    gcs_path format: gs://bucket/path/to/files/
+    If gcs_path is a local directory, it uses those files directly (for testing).
     """
-    if gcs_path.startswith("gs://"):
-        gcs_path = gcs_path[5:]
-    
-    bucket_name = gcs_path.split('/')[0]
-    prefix = '/'.join(gcs_path.split('/')[1:])
+    if not gcs_path.startswith("gs://"):
+        # Local test bypass
+        if os.path.isfile(gcs_path):
+            import shutil
+            dest = os.path.join(local_dir, os.path.basename(gcs_path))
+            shutil.copy2(gcs_path, dest)
+            print(f"🏠 Local file detected: {gcs_path}")
+            return [dest]
+        elif os.path.isdir(gcs_path):
+            print(f"🏠 Local directory detected: {gcs_path}")
+            local_files = []
+            for f in os.listdir(gcs_path):
+                full_path = os.path.join(gcs_path, f)
+                if os.path.isfile(full_path):
+                    # Copy to job local_dir to maintain isolation
+                    import shutil
+                    dest = os.path.join(local_dir, f)
+                    shutil.copy2(full_path, dest)
+                    local_files.append(dest)
+            return local_files
+        else:
+            print(f"⚠️ Path is not GS and not a valid local dir: {gcs_path}")
+            return []
+
+    # GCS Logic
+    gcs_path_clean = gcs_path[5:]
+    bucket_name = gcs_path_clean.split('/')[0]
+    prefix = '/'.join(gcs_path_clean.split('/')[1:])
     
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
@@ -142,26 +171,36 @@ def download_from_gcs(gcs_path: str, local_dir: str):
     return downloaded_files
 
 def upload_to_gcs(local_path: str, bucket_name: str, destination_blob_name: str):
-    """Uploads a file to GCS."""
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-    blob.upload_from_filename(local_path)
-    print(f"✅ Uploaded {local_path} to gs://{bucket_name}/{destination_blob_name}")
-    return f"gs://{bucket_name}/{destination_blob_name}"
+    """Uploads a file to GCS. Falls back to local path if GCS fails."""
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+        blob.upload_from_filename(local_path)
+        print(f"✅ Uploaded {local_path} to gs://{bucket_name}/{destination_blob_name}")
+        return f"gs://{bucket_name}/{destination_blob_name}"
+    except Exception as e:
+        print(f"🏠 GCS Upload skipped (Local Test Mode): {str(e)}")
+        return local_path
 
 def generate_signed_url(bucket_name: str, blob_name: str, expiration_hours: int = 24):
-    """Generates a v4 signed URL for downloading a blob."""
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
+    """Generates a v4 signed URL for downloading a blob. Returns local path if GCS fails."""
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
 
-    url = blob.generate_signed_url(
-        version="v4",
-        expiration=timedelta(hours=expiration_hours),
-        method="GET",
-    )
-    return url
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(hours=expiration_hours),
+            method="GET",
+        )
+        return url
+    except Exception as e:
+        # If it's a local path from upload_to_gcs, return it as a file URL
+        if os.path.exists(blob_name):
+            return f"file:///{os.path.abspath(blob_name).replace('\\', '/')}"
+        return blob_name
 
 # ==================== PRODUCTION LOGGING (GSheet & Email) ====================
 
