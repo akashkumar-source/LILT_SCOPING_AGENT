@@ -4,7 +4,7 @@ This service runs the scoping analysis engine on Google Cloud Run. it processes 
 
 Deployment Process
 
-The repository is configured to deploy automatically via GitHub Actions whenever code is pushed to the main branch.
+The repository is configured to deploy via GitHub Actions. **You must manually trigger the workflow** from the "Actions" tab (select "Deploy to Cloud Run" -> "Run workflow") to start the deployment.
 
 GitHub Secrets Setup
 For the deployment to work, you must add the following secrets in the repository settings (Settings > Secrets and variables > Actions):
