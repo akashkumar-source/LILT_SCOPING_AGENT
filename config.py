@@ -14,8 +14,8 @@ PROJECT_ID = os.getenv("PROJECT_ID", "arched-champion-847")
 GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
 
 # ==================== GCS CONFIGURATION ====================
-INPUT_BUCKET = os.getenv("INPUT_BUCKET", "scoping-agent-input")
-OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "scoping-agent-output")
+INPUT_BUCKET = os.getenv("INPUT_BUCKET", "agent-input-files")
+OUTPUT_BUCKET = os.getenv("OUTPUT_BUCKET", "agent-output-files")
 GCP_SERVICE_ACCOUNT_EMAIL = os.getenv("GCP_SERVICE_ACCOUNT_EMAIL", "")
 
 # Production Logging (Aditya's requirement)
